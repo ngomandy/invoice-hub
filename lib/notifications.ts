@@ -1,5 +1,5 @@
 import * as React from "react";
-import { resend } from "@/lib/resend";
+import { getResend } from "@/lib/resend";
 import { ChangeAlertEmail } from "@/lib/email-templates/change-alert";
 import { formatMonth } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
@@ -50,7 +50,7 @@ export async function sendChangeAlert(changeId: string) {
   const subject = `[Invoice Hub] Close Updated: ${clientName} — ${formatMonth(change.close_month)}`;
 
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: "Invoice Hub <onboarding@resend.dev>",
       to: recipients,
       subject,

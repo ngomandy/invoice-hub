@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { resend } from "@/lib/resend";
+import { getResend } from "@/lib/resend";
+
+export const dynamic = "force-dynamic";
 import { ChangeAlertEmail } from "@/lib/email-templates/change-alert";
 import { formatMonth } from "@/lib/utils";
 import * as React from "react";
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
   const subject = `[Invoice Hub] Close Updated: ${clientName} — ${formatMonth(change.close_month)}`;
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: "Invoice Hub <onboarding@resend.dev>",
       to: recipients,
       subject,
