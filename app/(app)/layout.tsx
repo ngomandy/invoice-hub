@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/layout/Sidebar";
+import AssistantPanel from "@/components/assistant/AssistantPanel";
 
 export default async function AppLayout({
   children,
@@ -24,6 +25,8 @@ export default async function AppLayout({
       <main className="flex-1 ml-56 p-8">
         {children}
       </main>
+      {/* Floating Claude assistant — available on every page */}
+      <AssistantPanel />
     </div>
   );
 }
