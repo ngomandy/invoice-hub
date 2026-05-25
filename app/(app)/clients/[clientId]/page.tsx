@@ -2,7 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import YearTable from "@/components/client-detail/YearTable";
-import { getYearsFromData, getMonthsForYear, getCurrentMonthStr } from "@/lib/utils";
+import ExportMenu from "@/components/export/ExportMenu";
+import {
+  getYearsFromData,
+  getMonthsForYear,
+  getCurrentMonthStr,
+  formatMonth,
+  formatCurrency,
+} from "@/lib/utils";
 
 export default async function ClientDetailPage({
   params,
@@ -68,6 +75,40 @@ export default async function ClientDetailPage({
 
   const currentMonth = getCurrentMonthStr();
 
+  // Build export rows for the selected year
+  const exportRows = monthData.map((m) => {
+    const variance =
+      m.close && m.billed
+        ? m.billed.billed_total - m.close.expected_total
+        : null;
+    const changeCount = m.close?.change_count ?? 0;
+    return {
+      Month: formatMonth(m.month),
+      "Net Usage": m.close ? formatCurrency(m.close.net_usage) : "",
+      "Rollover From": m.close ? formatCurrency(m.close.rollover_from_previous) : "",
+      "Rollover To": m.close ? formatCurrency(m.close.rollover_to_next) : "",
+      Discounts: m.close ? formatCurrency(m.close.discounts) : "",
+      "Expected Close": m.close ? formatCurrency(m.close.expected_total) : "",
+      "Billed Amount": m.billed ? formatCurrency(m.billed.billed_total) : "",
+      Variance:
+        variance !== null
+          ? (variance >= 0 ? "+" : "") + formatCurrency(variance)
+          : "",
+      Status: m.close
+        ? changeCount > 0
+          ? `Changed ×${changeCount}`
+          : "Locked"
+        : "No close",
+    };
+  });
+
+  const exportTitle = `${client.name} — ${selectedYear}`;
+  const exportSubtitle = `Revenue Close Report · Generated ${new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })}`;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -75,7 +116,13 @@ export default async function ClientDetailPage({
           <p className="text-sm text-text-muted mb-1">Client</p>
           <h1 className="text-2xl font-bold text-text-primary">{client.name}</h1>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
+          <ExportMenu
+            rows={exportRows}
+            filename={`${client.name.toLowerCase().replace(/\s+/g, "-")}-${selectedYear}`}
+            title={exportTitle}
+            subtitle={exportSubtitle}
+          />
           <Link
             href={`/clients/${clientId}/history`}
             className="text-sm font-medium text-text-secondary border border-surface-border px-4 py-2 rounded-md hover:bg-surface-muted transition-colors"

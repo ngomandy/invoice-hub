@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ClientGrid from "@/components/dashboard/ClientGrid";
-import { getCurrentMonthStr } from "@/lib/utils";
+import ExportMenu from "@/components/export/ExportMenu";
+import { getCurrentMonthStr, formatMonth, formatCurrency } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -24,6 +25,39 @@ export default async function DashboardPage() {
     .select("client_id, close_month, billed_total")
     .order("close_month", { ascending: false });
 
+  // Build export rows — one per client, current month snapshot
+  const closeMap = Object.fromEntries(
+    (currentCloses ?? []).map((c) => [c.client_id, c])
+  );
+  const billedCurrentMap = Object.fromEntries(
+    (billedAmounts ?? [])
+      .filter((b) => b.close_month === currentMonth)
+      .map((b) => [b.client_id, b])
+  );
+
+  const exportRows = (clients ?? []).map((client) => {
+    const close = closeMap[client.id];
+    const billed = billedCurrentMap[client.id];
+    const variance =
+      close && billed ? billed.billed_total - close.expected_total : null;
+
+    return {
+      Client: client.name,
+      Month: formatMonth(currentMonth),
+      "Expected Close": close ? formatCurrency(close.expected_total) : "",
+      "Billed Amount": billed ? formatCurrency(billed.billed_total) : "",
+      "Variance": variance !== null
+        ? (variance >= 0 ? "+" : "") + formatCurrency(variance)
+        : "",
+      Status: close ? "Close submitted" : "Awaiting close",
+    };
+  });
+
+  const exportTitle = `All Clients — ${formatMonth(currentMonth)}`;
+  const exportSubtitle = `Generated ${new Date().toLocaleDateString("en-US", {
+    month: "long", day: "numeric", year: "numeric",
+  })}`;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -32,6 +66,12 @@ export default async function DashboardPage() {
           <p className="text-sm text-text-muted mt-1">Revenue close tracking</p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportMenu
+            rows={exportRows}
+            filename={`invoice-hub-dashboard-${currentMonth}`}
+            title={exportTitle}
+            subtitle={exportSubtitle}
+          />
           <Link
             href="/import"
             className="inline-flex items-center gap-2 bg-white border border-surface-border text-text-secondary text-sm font-medium px-4 py-2 rounded-md hover:bg-surface-muted transition-colors"
