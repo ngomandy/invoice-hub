@@ -12,7 +12,6 @@ export default function ClientGrid({
   clients,
   currentCloses,
   billedAmounts,
-  currentMonth,
 }: ClientGridProps) {
   if (clients.length === 0) {
     return (

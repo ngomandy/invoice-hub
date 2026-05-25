@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import LivePreviewBox from "./LivePreviewBox";
-import { formatMonth, toFirstOfMonth, getCurrentMonthStr } from "@/lib/utils";
+import { toFirstOfMonth, getCurrentMonthStr } from "@/lib/utils";
 import { RevenueClose } from "@/lib/types";
 
 type CloseFormProps = {
@@ -20,7 +20,6 @@ const MONTHS = [
 
 export default function CloseForm({
   clientId,
-  clientName,
   existingClose,
   defaultMonth,
 }: CloseFormProps) {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatCurrency, formatVariance } from "@/lib/utils";
+import { formatVariance } from "@/lib/utils";
 
 type ClientCardProps = {
   id: string;
