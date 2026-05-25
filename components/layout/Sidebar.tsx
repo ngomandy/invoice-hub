@@ -1,0 +1,96 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type SidebarProps = {
+  clients: { id: string; name: string }[];
+};
+
+export default function Sidebar({ clients }: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  return (
+    <aside className="fixed left-0 top-0 h-full w-56 bg-white border-r border-surface-border flex flex-col">
+      {/* Logo */}
+      <div className="px-4 py-5 border-b border-surface-border">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-brand rounded flex items-center justify-center flex-shrink-0">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <span className="text-sm font-bold text-text-primary">Invoice Hub</span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 p-3 overflow-y-auto">
+        <Link
+          href="/dashboard"
+          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium mb-1 transition-colors ${
+            pathname === "/dashboard"
+              ? "bg-brand/10 text-brand"
+              : "text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+          }`}
+        >
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Dashboard
+        </Link>
+
+        {clients.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider px-3 mb-2">
+              Clients
+            </p>
+            {clients.map((client) => {
+              const isActive = pathname.startsWith(`/clients/${client.id}`);
+              return (
+                <Link
+                  key={client.id}
+                  href={`/clients/${client.id}`}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm mb-0.5 transition-colors truncate ${
+                    isActive
+                      ? "bg-brand/10 text-brand font-medium"
+                      : "text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+                  }`}
+                >
+                  {client.name}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-4">
+          <Link
+            href="/clients/new"
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-text-muted hover:bg-surface-muted hover:text-text-primary transition-colors"
+          >
+            + Add Client
+          </Link>
+        </div>
+      </nav>
+
+      {/* Sign out */}
+      <div className="p-3 border-t border-surface-border">
+        <button
+          onClick={handleSignOut}
+          className="w-full text-left px-3 py-2 text-sm text-text-muted hover:text-negative hover:bg-negative-bg rounded-md transition-colors"
+        >
+          Sign out
+        </button>
+      </div>
+    </aside>
+  );
+}
