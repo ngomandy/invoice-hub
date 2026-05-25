@@ -48,6 +48,20 @@ export default function Sidebar({ clients }: SidebarProps) {
           Dashboard
         </Link>
 
+        <Link
+          href="/import"
+          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium mb-1 transition-colors ${
+            pathname === "/import"
+              ? "bg-brand/10 text-brand"
+              : "text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+          }`}
+        >
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          Import CSV
+        </Link>
+
         {clients.length > 0 && (
           <div className="mt-4">
             <p className="text-xs font-semibold text-text-muted uppercase tracking-wider px-3 mb-2">
