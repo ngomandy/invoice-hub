@@ -163,71 +163,86 @@ ${metricsSection}`;
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { message, history } = await request.json();
-  if (!message?.trim()) {
-    return NextResponse.json({ error: "Message is required" }, { status: 400 });
-  }
+    const { message, history } = await request.json();
+    if (!message?.trim()) {
+      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "ANTHROPIC_API_KEY is not configured" },
+        { status: 500 }
+      );
+    }
+
+    // Build context from live DB data
+    const systemPrompt = await buildSystemPrompt(supabase);
+
+    // Reconstruct conversation history (max last 10 turns to stay within context)
+    const messages: Anthropic.MessageParam[] = [
+      ...((history ?? []) as { role: "user" | "assistant"; content: string }[])
+        .slice(-10)
+        .map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: message },
+    ];
+
+    const anthropic = new Anthropic({ apiKey });
+
+    // Stream the response
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const response = await anthropic.messages.create({
+            model: "claude-sonnet-4-6",
+            max_tokens: 2048,
+            system: systemPrompt,
+            messages,
+            stream: true,
+          });
+
+          for await (const chunk of response) {
+            if (
+              chunk.type === "content_block_delta" &&
+              chunk.delta.type === "text_delta"
+            ) {
+              controller.enqueue(
+                new TextEncoder().encode(chunk.delta.text)
+              );
+            }
+          }
+          controller.close();
+        } catch (err) {
+          // Send the error message through the stream so the frontend can display it
+          const errMsg = err instanceof Error ? err.message : String(err);
+          controller.enqueue(
+            new TextEncoder().encode(`\n\n⚠️ Error from Claude API: ${errMsg}`)
+          );
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch (err) {
+    // Top-level catch — something failed before the stream started
+    console.error("[/api/assistant] Unhandled error:", err);
+    const errMsg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not configured" },
+      { error: `Server error: ${errMsg}` },
       { status: 500 }
     );
   }
-
-  // Build context from live DB data
-  const systemPrompt = await buildSystemPrompt(supabase);
-
-  // Reconstruct conversation history (max last 10 turns to stay within context)
-  const messages: Anthropic.MessageParam[] = [
-    ...((history ?? []) as { role: "user" | "assistant"; content: string }[])
-      .slice(-10)
-      .map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: message },
-  ];
-
-  const anthropic = new Anthropic({ apiKey });
-
-  // Stream the response
-  const stream = new ReadableStream({
-    async start(controller) {
-      try {
-        const response = await anthropic.messages.create({
-          model: "claude-opus-4-7",
-          max_tokens: 2048,
-          system: systemPrompt,
-          messages,
-          stream: true,
-        });
-
-        for await (const chunk of response) {
-          if (
-            chunk.type === "content_block_delta" &&
-            chunk.delta.type === "text_delta"
-          ) {
-            controller.enqueue(
-              new TextEncoder().encode(chunk.delta.text)
-            );
-          }
-        }
-        controller.close();
-      } catch (err) {
-        controller.error(err);
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }
