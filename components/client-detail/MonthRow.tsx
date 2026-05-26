@@ -64,17 +64,44 @@ export default function MonthRow({ data, clientId, isCurrentMonth }: MonthRowPro
     );
   };
 
+  const dash = <span className="text-text-muted">—</span>;
+
   return (
     <tr className={`border-b border-surface-border hover:bg-surface-muted/50 transition-colors ${isCurrentMonth ? "bg-brand/5" : ""}`}>
-      <td className="px-4 py-3 text-sm font-medium text-text-primary w-24">
+      {/* Month */}
+      <td className="px-4 py-3 text-sm font-medium text-text-primary w-20">
         {formatMonthAbbr(month)}
       </td>
-      <td className="px-4 py-3 text-sm font-mono text-text-primary">
-        {close ? formatCurrency(close.expected_total) : <span className="text-text-muted">—</span>}
+
+      {/* Net Usage */}
+      <td className="px-4 py-3 text-sm text-right font-mono text-text-secondary tabular-nums">
+        {close?.net_usage != null ? formatCurrency(close.net_usage) : dash}
       </td>
-      <td className="px-4 py-3 text-sm">
+
+      {/* Rollover From Previous */}
+      <td className="px-4 py-3 text-sm text-right font-mono text-text-secondary tabular-nums">
+        {close?.rollover_from_previous != null ? formatCurrency(close.rollover_from_previous) : dash}
+      </td>
+
+      {/* Rollover To Next */}
+      <td className="px-4 py-3 text-sm text-right font-mono text-text-secondary tabular-nums">
+        {close?.rollover_to_next != null ? formatCurrency(close.rollover_to_next) : dash}
+      </td>
+
+      {/* Discounts */}
+      <td className="px-4 py-3 text-sm text-right font-mono text-text-secondary tabular-nums">
+        {close?.discounts != null ? formatCurrency(close.discounts) : dash}
+      </td>
+
+      {/* Expected Close */}
+      <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-text-primary tabular-nums">
+        {close ? formatCurrency(close.expected_total) : dash}
+      </td>
+
+      {/* Billed Amount — inline editable */}
+      <td className="px-4 py-3 text-sm text-right">
         {editingBilled ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <input
               type="number"
               value={billedValue}
@@ -98,9 +125,9 @@ export default function MonthRow({ data, clientId, isCurrentMonth }: MonthRowPro
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="font-mono">
-              {billed ? formatCurrency(billed.billed_total) : <span className="text-text-muted">—</span>}
+          <div className="flex items-center justify-end gap-2">
+            <span className="font-mono tabular-nums text-text-secondary">
+              {billed ? formatCurrency(billed.billed_total) : dash}
             </span>
             <button
               onClick={() => setEditingBilled(true)}
@@ -111,16 +138,22 @@ export default function MonthRow({ data, clientId, isCurrentMonth }: MonthRowPro
           </div>
         )}
       </td>
-      <td className="px-4 py-3">
+
+      {/* Variance */}
+      <td className="px-4 py-3 text-right">
         <VarianceBadge variance={variance} />
       </td>
+
+      {/* Status */}
       <td className="px-4 py-3">{statusBadge()}</td>
+
+      {/* Actions */}
       <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-2">
           {close && (
             <Link
               href={`/clients/${clientId}/close?month=${month}`}
-              className="text-xs text-text-secondary hover:text-brand transition-colors"
+              className="text-xs text-text-secondary hover:text-brand transition-colors whitespace-nowrap"
             >
               Edit close
             </Link>
@@ -128,7 +161,7 @@ export default function MonthRow({ data, clientId, isCurrentMonth }: MonthRowPro
           {!editingBilled && (
             <button
               onClick={() => setEditingBilled(true)}
-              className="text-xs text-text-secondary hover:text-brand transition-colors"
+              className="text-xs text-text-secondary hover:text-brand transition-colors whitespace-nowrap"
             >
               {billed ? "Edit billed" : "Enter billed"}
             </button>
