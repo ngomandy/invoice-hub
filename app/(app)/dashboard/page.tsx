@@ -8,19 +8,33 @@ import { getCurrentMonthStr, formatMonth, formatCurrency } from "@/lib/utils";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { month?: string; exclude?: string };
+  searchParams: {
+    month?: string;
+    exclude?: string;
+    status?: string;
+    variance?: string;
+    billed?: string;
+  };
 }) {
   const supabase = createClient();
   const currentMonth = getCurrentMonthStr();
 
-  // Resolve selected month and excluded client IDs from URL params
-  const selectedMonth = searchParams.month ?? currentMonth;
-  const excludedIds = searchParams.exclude
+  // ── Resolve filter params ───────────────────────────────────────────────────
+  const selectedMonth  = searchParams.month    ?? currentMonth;
+  const statusFilter   = searchParams.status   ?? "all";
+  const varianceFilter = searchParams.variance ?? "all";
+  const billedFilter   = searchParams.billed   ?? "all";
+  const excludedIds    = searchParams.exclude
     ? searchParams.exclude.split(",").filter(Boolean)
     : [];
 
-  // Fetch all clients + available months in parallel
-  const [{ data: allClients }, { data: monthRows }] = await Promise.all([
+  // ── Fetch data ──────────────────────────────────────────────────────────────
+  const [
+    { data: allClients },
+    { data: monthRows },
+    { data: currentCloses },
+    { data: currentBilled },
+  ] = await Promise.all([
     supabase
       .from("clients")
       .select("id, name")
@@ -31,16 +45,6 @@ export default async function DashboardPage({
       .select("close_month")
       .eq("is_current", true)
       .order("close_month", { ascending: false }),
-  ]);
-
-  // Build a deduplicated, sorted list of available months (most recent first)
-  // Always include the current month even if no closes exist yet
-  const monthSet = new Set<string>([currentMonth]);
-  (monthRows ?? []).forEach((r) => monthSet.add(r.close_month));
-  const availableMonths = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
-
-  // Fetch close + billed data for the selected month
-  const [{ data: currentCloses }, { data: currentBilled }] = await Promise.all([
     supabase
       .from("revenue_closes")
       .select("client_id, expected_total, net_usage, rollover_from_previous, rollover_to_next, discounts")
@@ -52,12 +56,12 @@ export default async function DashboardPage({
       .eq("close_month", selectedMonth),
   ]);
 
-  // Apply client exclusion filter
-  const visibleClients = (allClients ?? []).filter(
-    (c) => !excludedIds.includes(c.id)
-  );
+  // ── Available months list (most-recent first, always include current) ────────
+  const monthSet = new Set<string>([currentMonth]);
+  (monthRows ?? []).forEach((r) => monthSet.add(r.close_month));
+  const availableMonths = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
 
-  // Build export rows for visible clients only
+  // ── Build lookup maps ────────────────────────────────────────────────────────
   const closeMap = Object.fromEntries(
     (currentCloses ?? []).map((c) => [c.client_id, c])
   );
@@ -65,21 +69,61 @@ export default async function DashboardPage({
     (currentBilled ?? []).map((b) => [b.client_id, b])
   );
 
+  // ── Apply all filters ────────────────────────────────────────────────────────
+  let visibleClients = (allClients ?? []);
+
+  // 1. Client exclusion
+  if (excludedIds.length > 0) {
+    visibleClients = visibleClients.filter((c) => !excludedIds.includes(c.id));
+  }
+
+  // 2. Close status
+  if (statusFilter !== "all") {
+    visibleClients = visibleClients.filter((c) => {
+      const hasClose = !!closeMap[c.id];
+      return statusFilter === "submitted" ? hasClose : !hasClose;
+    });
+  }
+
+  // 3. Billed entry
+  if (billedFilter !== "all") {
+    visibleClients = visibleClients.filter((c) => {
+      const hasBilled = !!billedMap[c.id];
+      return billedFilter === "entered" ? hasBilled : !hasBilled;
+    });
+  }
+
+  // 4. Variance direction
+  if (varianceFilter !== "all") {
+    visibleClients = visibleClients.filter((c) => {
+      const close  = closeMap[c.id];
+      const billed = billedMap[c.id];
+      if (!close || !billed) return false; // no variance computable
+      const v = billed.billed_total - close.expected_total;
+      if (varianceFilter === "overbilled")   return v > 0;
+      if (varianceFilter === "underbilled")  return v < 0;
+      if (varianceFilter === "on-target")    return v === 0;
+      if (varianceFilter === "has-variance") return v !== 0;
+      return true;
+    });
+  }
+
+  // ── Export rows (respects all active filters) ────────────────────────────────
   const exportRows = visibleClients.map((client) => {
-    const close = closeMap[client.id];
+    const close  = closeMap[client.id];
     const billed = billedMap[client.id];
     const variance =
       close && billed ? billed.billed_total - close.expected_total : null;
 
     return {
-      Client: client.name,
-      Month: formatMonth(selectedMonth),
-      "Net Usage": close ? formatCurrency(close.net_usage ?? 0) : "",
-      "Rollover From": close ? formatCurrency(close.rollover_from_previous ?? 0) : "",
-      "Rollover To": close ? formatCurrency(close.rollover_to_next ?? 0) : "",
-      Discounts: close ? formatCurrency(close.discounts ?? 0) : "",
-      "Expected Close": close ? formatCurrency(close.expected_total) : "",
-      "Billed Amount": billed ? formatCurrency(billed.billed_total) : "",
+      Client:           client.name,
+      Month:            formatMonth(selectedMonth),
+      "Net Usage":      close  ? formatCurrency(close.net_usage              ?? 0) : "",
+      "Rollover From":  close  ? formatCurrency(close.rollover_from_previous ?? 0) : "",
+      "Rollover To":    close  ? formatCurrency(close.rollover_to_next       ?? 0) : "",
+      Discounts:        close  ? formatCurrency(close.discounts              ?? 0) : "",
+      "Expected Close": close  ? formatCurrency(close.expected_total)              : "",
+      "Billed Amount":  billed ? formatCurrency(billed.billed_total)              : "",
       Variance:
         variance !== null
           ? (variance >= 0 ? "+" : "") + formatCurrency(variance)
@@ -88,12 +132,16 @@ export default async function DashboardPage({
     };
   });
 
-  const exportTitle = `All Clients — ${formatMonth(selectedMonth)}`;
+  const exportTitle    = `All Clients — ${formatMonth(selectedMonth)}`;
   const exportSubtitle = `Generated ${new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+    month: "long", day: "numeric", year: "numeric",
   })}`;
+
+  const activeFilterCount =
+    (excludedIds.length > 0       ? 1 : 0) +
+    (statusFilter   !== "all"     ? 1 : 0) +
+    (varianceFilter !== "all"     ? 1 : 0) +
+    (billedFilter   !== "all"     ? 1 : 0);
 
   return (
     <div>
@@ -103,8 +151,10 @@ export default async function DashboardPage({
           <h1 className="text-2xl font-bold text-text-primary">Dashboard</h1>
           <p className="text-sm text-text-muted mt-1">
             {formatMonth(selectedMonth)} · {visibleClients.length} client{visibleClients.length !== 1 ? "s" : ""}
-            {excludedIds.length > 0 && (
-              <span className="ml-1 text-brand">({excludedIds.length} excluded)</span>
+            {activeFilterCount > 0 && (
+              <span className="ml-1.5 inline-flex items-center gap-1 bg-brand/10 text-brand text-xs font-medium px-2 py-0.5 rounded-full">
+                {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active
+              </span>
             )}
           </p>
         </div>
@@ -137,8 +187,13 @@ export default async function DashboardPage({
       <DashboardFilters
         months={availableMonths}
         clients={allClients ?? []}
-        selectedMonth={selectedMonth}
-        excludedIds={excludedIds}
+        filters={{
+          month:       selectedMonth,
+          excludedIds,
+          status:      statusFilter,
+          variance:    varianceFilter,
+          billed:      billedFilter,
+        }}
       />
 
       {/* Table */}
