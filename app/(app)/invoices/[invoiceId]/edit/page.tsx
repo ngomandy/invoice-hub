@@ -37,8 +37,8 @@ export default async function EditInvoicePage({
 
   if (!inv) notFound();
 
-  // Only drafts are editable
-  if (inv.status !== "draft") {
+  // Void invoices cannot be edited
+  if (inv.status === "void") {
     redirect(`/invoices/${params.invoiceId}`);
   }
 

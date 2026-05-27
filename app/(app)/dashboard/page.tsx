@@ -4,6 +4,7 @@ import DashboardTable from "@/components/dashboard/DashboardTable";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import DashboardAlerts from "@/components/dashboard/DashboardAlerts";
 import StatCards from "@/components/dashboard/StatCards";
+import InvoiceKPICards from "@/components/dashboard/InvoiceKPICards";
 import ExportMenu from "@/components/export/ExportMenu";
 import SendSummaryButton from "@/components/dashboard/SendSummaryButton";
 import { getCurrentMonthStr, formatMonth, formatCurrency, toFirstOfMonth } from "@/lib/utils";
@@ -291,6 +292,9 @@ export default async function DashboardPage({
         currentMonth={currentMonth}
         prevMonth={prevMonth}
       />
+
+      {/* Invoice KPI strip */}
+      <InvoiceKPICards />
 
       {/* Stat summary cards */}
       <StatCards
