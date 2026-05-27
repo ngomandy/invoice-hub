@@ -13,6 +13,8 @@ export type Profile = {
   created_at: string;
 };
 
+export type ApprovalStatus = "submitted" | "under_review" | "approved" | "rejected";
+
 export type RevenueClose = {
   id: string;
   client_id: string;
@@ -27,6 +29,12 @@ export type RevenueClose = {
   submitted_by: string;
   submitted_at: string;
   notes: string | null;
+  // Approval workflow
+  approval_status: ApprovalStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
+  // Joined / computed
   submitted_by_name?: string;
   change_count?: number;
 };
@@ -61,6 +69,7 @@ export type BilledAmount = {
   entered_by: string;
   entered_at: string;
   updated_at: string;
+  variance_reason: string | null;
 };
 
 export type MonthData = {

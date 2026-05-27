@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { formatCurrency, formatVariance } from "@/lib/utils";
+import HealthBadge, { type HealthGrade } from "@/components/dashboard/HealthBadge";
+import Sparkline from "@/components/dashboard/Sparkline";
 
 type CloseRow = {
   client_id: string;
@@ -16,15 +18,19 @@ type BilledRow = {
 };
 
 type DashboardTableProps = {
-  clients: { id: string; name: string }[];
+  clients:       { id: string; name: string }[];
   currentCloses: CloseRow[];
   currentBilled: BilledRow[];
+  healthGrades:  Record<string, HealthGrade>;
+  sparklineData: Record<string, (number | null)[]>;
 };
 
 export default function DashboardTable({
   clients,
   currentCloses,
   currentBilled,
+  healthGrades,
+  sparklineData,
 }: DashboardTableProps) {
   if (clients.length === 0) {
     return (
@@ -40,7 +46,7 @@ export default function DashboardTable({
     );
   }
 
-  const closeMap = Object.fromEntries(currentCloses.map((c) => [c.client_id, c]));
+  const closeMap  = Object.fromEntries(currentCloses.map((c) => [c.client_id, c]));
   const billedMap = Object.fromEntries(currentBilled.map((b) => [b.client_id, b]));
 
   return (
@@ -49,7 +55,7 @@ export default function DashboardTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-surface-border bg-surface-muted">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Client</th>
+              <th className="text-left  px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Client</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Net Usage</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Rollover From</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Rollover To</th>
@@ -58,14 +64,17 @@ export default function DashboardTable({
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Billed</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Variance</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Status</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">Health</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider whitespace-nowrap">6m Trend</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border">
             {clients.map((client) => {
-              const close = closeMap[client.id] ?? null;
-              const billed = billedMap[client.id] ?? null;
-              const variance =
-                close && billed ? billed.billed_total - close.expected_total : null;
+              const close    = closeMap[client.id]  ?? null;
+              const billed   = billedMap[client.id] ?? null;
+              const variance = close && billed ? billed.billed_total - close.expected_total : null;
+              const grade    = healthGrades[client.id]  ?? "new";
+              const points   = sparklineData[client.id] ?? Array(6).fill(null);
 
               return (
                 <tr key={client.id} className="hover:bg-surface-muted/50 transition-colors">
@@ -132,6 +141,18 @@ export default function DashboardTable({
                       {close ? "Submitted" : "Awaiting"}
                     </span>
                   </td>
+
+                  {/* Health */}
+                  <td className="px-4 py-3 text-center">
+                    <HealthBadge grade={grade} />
+                  </td>
+
+                  {/* 6-month Sparkline */}
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex justify-center">
+                      <Sparkline points={points} />
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -164,7 +185,7 @@ export default function DashboardTable({
                 </td>
                 {(() => {
                   const totalExpected = currentCloses.reduce((s, c) => s + c.expected_total, 0);
-                  const totalBilled = currentBilled.reduce((s, b) => s + b.billed_total, 0);
+                  const totalBilled   = currentBilled.reduce((s, b) => s + b.billed_total, 0);
                   const totalVariance = totalBilled - totalExpected;
                   return (
                     <td className="px-4 py-3 text-right tabular-nums text-sm">
@@ -178,7 +199,8 @@ export default function DashboardTable({
                     </td>
                   );
                 })()}
-                <td />
+                {/* Status, Health, Trend — no totals */}
+                <td /><td /><td />
               </tr>
             </tfoot>
           )}

@@ -13,15 +13,25 @@ export default async function AppLayout({
 
   if (!user) redirect("/login");
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, name")
-    .eq("is_active", true)
-    .order("name");
+  const [{ data: clients }, { count: pendingApprovals }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("revenue_closes")
+      .select("id", { count: "exact", head: true })
+      .in("approval_status", ["submitted", "under_review"])
+      .eq("is_current", true),
+  ]);
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar clients={clients ?? []} />
+      <Sidebar
+        clients={clients ?? []}
+        pendingApprovals={pendingApprovals ?? 0}
+      />
       <main className="flex-1 ml-56 p-8">
         {children}
       </main>
