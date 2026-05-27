@@ -55,6 +55,12 @@ export function getYearsFromData(items: { close_month: string }[]): number[] {
   return Array.from(years).sort((a, b) => b - a);
 }
 
+export function formatDate(dateStr: string): string {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+}
+
 export function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString("en-US", {
     month: "short",
