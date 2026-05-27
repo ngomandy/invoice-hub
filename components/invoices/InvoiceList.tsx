@@ -21,20 +21,12 @@ export default function InvoiceList({ invoices }: Props) {
     return (
       <div className="text-center py-16 bg-white border border-surface-border rounded-lg">
         <p className="text-text-muted text-sm mb-4">No invoices yet.</p>
-        <div className="flex items-center justify-center gap-3">
-          <Link
-            href="/invoices/new"
-            className="inline-flex items-center gap-2 bg-brand text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-brand-dark transition-colors"
-          >
-            Upload NetSuite Invoice
-          </Link>
-          <Link
-            href="/invoices/import"
-            className="inline-flex items-center gap-2 border border-surface-border bg-white text-text-secondary text-sm font-medium px-4 py-2 rounded-md hover:bg-surface-muted transition-colors"
-          >
-            Bulk CSV Import
-          </Link>
-        </div>
+        <Link
+          href="/invoices/import"
+          className="inline-flex items-center gap-2 bg-brand text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-brand-dark transition-colors"
+        >
+          Upload from NetSuite
+        </Link>
       </div>
     );
   }

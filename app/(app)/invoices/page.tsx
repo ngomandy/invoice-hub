@@ -88,21 +88,12 @@ export default async function InvoicesPage({
           <SendOverdueRemindersButton overdueCount={overdueCount} />
           <Link
             href="/invoices/import"
-            className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md border border-surface-border bg-white text-text-secondary hover:bg-surface-muted transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md bg-brand text-white hover:bg-brand-dark transition-colors"
           >
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            Bulk CSV Import
-          </Link>
-          <Link
-            href="/invoices/new"
-            className="inline-flex items-center gap-2 bg-brand text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-brand-dark transition-colors"
-          >
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-5-6zm0 0v6h6M9 13h6m-6 4h4" />
-            </svg>
-            Upload NetSuite Invoice
+            Upload from NetSuite
           </Link>
         </div>
       </div>
@@ -157,20 +148,12 @@ export default async function InvoicesPage({
             {statusFilter || q ? "No invoices match your filters." : "No invoices yet."}
           </p>
           {!statusFilter && !q && (
-            <div className="flex items-center justify-center gap-3">
-              <Link
-                href="/invoices/new"
-                className="inline-flex items-center gap-2 bg-brand text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-brand-dark transition-colors"
-              >
-                Upload NetSuite Invoice
-              </Link>
-              <Link
-                href="/invoices/import"
-                className="inline-flex items-center gap-2 border border-surface-border bg-white text-text-secondary text-sm font-medium px-4 py-2 rounded-md hover:bg-surface-muted transition-colors"
-              >
-                Bulk CSV Import
-              </Link>
-            </div>
+            <Link
+              href="/invoices/import"
+              className="inline-flex items-center gap-2 bg-brand text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-brand-dark transition-colors"
+            >
+              Upload from NetSuite
+            </Link>
           )}
         </div>
       ) : (
