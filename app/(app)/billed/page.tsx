@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import BulkBilledTable from "@/components/billed/BulkBilledTable";
+import BilledMonthSelect from "@/components/billed/BilledMonthSelect";
 import { getCurrentMonthStr, formatMonth, toFirstOfMonth } from "@/lib/utils";
 
 export default async function BulkBilledPage({
@@ -65,19 +66,7 @@ export default async function BulkBilledPage({
         </div>
 
         {/* Month selector */}
-        <select
-          defaultValue={selectedMonth}
-          onChange={(e) => {
-            if (typeof window !== "undefined") {
-              window.location.href = `/billed?month=${e.target.value}`;
-            }
-          }}
-          className="text-sm border border-surface-border rounded-md px-3 py-2 bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-brand"
-        >
-          {monthOptions.map((m) => (
-            <option key={m} value={m}>{formatMonth(m)}</option>
-          ))}
-        </select>
+        <BilledMonthSelect options={monthOptions} selectedMonth={selectedMonth} />
       </div>
 
       {/* Progress bar */}
