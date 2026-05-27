@@ -25,7 +25,7 @@ export default async function ProfilePage() {
       <div className="bg-white border border-surface-border rounded-lg p-6 mb-6 flex items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
           <span className="text-2xl font-bold text-brand">
-            {(profile?.full_name ?? user.email ?? "?")[0].toUpperCase()}
+            {(profile?.full_name || user.email || "?")[0].toUpperCase()}
           </span>
         </div>
         <div>
